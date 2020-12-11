@@ -38,4 +38,4 @@ Though I concluded the final model with Log transformation on target variable, t
 
 ## References
 
-Kaggle - New York City Airbnb Open Data(https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data)
+[Kaggle - New York City Airbnb Open Data](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data)
