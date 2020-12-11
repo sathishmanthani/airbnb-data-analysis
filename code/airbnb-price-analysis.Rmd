@@ -1,0 +1,359 @@
+---
+title: "DSC20 - Final Project"
+author: "Sathish Manthani"
+date: "11/12/2019"
+output:
+  html_document:
+    df_print: paged
+  word_document: null
+fontsize: 13pt
+---
+
+
+-----------------
+
+
+
+## Data import and cleansing  
+
+### Source dataset
+
+[New York City Airbnb Open Data](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data)
+
+### Packages
+Import the required packages/libraries to anlayze the dataset  
+
+```{r libraries, message = FALSE}
+
+library(ggplot2)    # plots for visualization
+library(dplyr)      # for data manipulation
+library(corrplot)   # for display of correlation matrix
+library(GGally)     # for gallary display of charts
+library(gridExtra)  # to view plots in grid
+library(purrr)      # for map_dbl function
+
+```
+
+### Read the data file  
+
+```{r data_import}
+airbnb.df  <- read.csv("AB_NYC_2019.csv", stringsAsFactors = FALSE)
+
+
+```
+
+### Understanding the data  
+
+```{r basic_check}
+
+# view its class
+class(airbnb.df)
+
+# dimensions of the data
+dim(airbnb.df)
+
+# Structure of the dataset
+str(airbnb.df)             
+
+```
+
+There are no special characters or spaces in column names, renaming is not required.  
+However, some of the categorical variables can be converted to factors. Before conversion, let's check how many unique values are there for each of these variables in the dataset.  
+
+### Unique values of variables  
+
+```{r unique}
+#following function gets unique values for each variable in the dataset  
+sapply(airbnb.df, function(x) length(unique(x)))
+```
+From the above output, I can see neighbourhood_group, room_type, neighbourhood variables can be factors
+
+
+### Data type conversion
+
+```{r data_types}
+
+# convert neighbourhood_group, room_type, neighbourhood to factors
+airbnb.df['neighbourhood_group'] <- as.factor(airbnb.df$neighbourhood_group)
+airbnb.df['room_type'] <- as.factor(airbnb.df$room_type)
+airbnb.df['neighbourhood'] <- as.factor(airbnb.df$neighbourhood)
+
+#Convert last_review to date datatype
+airbnb.df['last_review'] <- as.Date(airbnb.df$'last_review')
+
+#Look at the new structure
+str(airbnb.df)
+
+```
+
+
+### Looking at the raw data
+
+```{r head_data}
+head(airbnb.df)
+```
+
+### Drop unwanted variables  
+
+As we can see there are a couple of id columns namely id, host_id which dont carry much information as far as our analysis is concerned. So I'm removing them from the dataset.  
+
+```{r drop_ids}
+drops <- c("id","host_id")
+airbnb.df <- airbnb.df[ , !(names(airbnb.df) %in% drops)]
+```
+
+
+Check if there are any **duplicate rows** from the dataset. Duplicate rows can affect the data analysis.    
+
+### Duplicate check
+
+```{r dup_check}
+#Number of observations in the file
+rows <- nrow(airbnb.df)
+
+#Number of unique rows 
+unique_rows <- nrow(unique(airbnb.df))
+
+rows == unique_rows
+```
+
+Since the total rows is equal to unique rows, we can see that there are no duplicates in the dataset.  
+
+
+### Missing values
+Check for missing values in the dataset. Missing values can lead to unwanted results, so its good to cleanse such rows.  
+
+
+```{r missing_values_perc}
+
+sapply(airbnb.df,      # apply to each column of the dataframe 
+  function(x)  # this function:
+    sum(is.na(x))  # count the NAs
+) / nrow(airbnb.df) * 100  # then divide the result by the number of rows in the airbnb dataframe
+
+#summary(airbnb.df)
+airbnb.df[is.na(airbnb.df$price)]
+```
+From the above output, we can see reviews_per_month variable has 20% NA values.  
+I'll omit the missing value rows if I find reviews_per_month has significant effect on the price of the hotel.  
+For now, I think there's no need to manually treat the data.  
+
+## Understand categorical variables    
+
+```{r levels}
+#Neighbourhood Groups
+levels(airbnb.df$neighbourhood_group)
+
+#Available room types
+levels(airbnb.df$room_type)
+
+
+```
+
+```{r summary}
+#Glimpse of Airbnb dataset
+glimpse(airbnb.df)
+```
+
+
+----------
+
+## Question A  
+
+*Discuss how you plan to uncover new information in the data that is not self-evident.*  
+
+### Distributions
+
+Let's take a look at the distribution of our target variable "Price"  - 
+
+```{r distr1}
+#Distribution of Price variable
+ggplot(airbnb.df, aes(x=price)) + geom_histogram(bins = 10, fill = 'blue') + coord_cartesian(xlim=c(0,2000)) + theme_classic() + labs(title = 'Histogram of Price', x = 'Price', y = 'Count')
+
+```
+
+It doesn't look like a Normal distribution.  It is heavily skewed to the right.  
+
+### Histogram of Price with LOG transformation
+
+```{r distr2}
+#Distribution of Price variable
+ggplot(airbnb.df, aes(x=price) ) + geom_histogram(bins = 10, fill = 'blue') + scale_x_log10() + labs(title = 'Histogram of Price', x = 'Price', y = 'Count')
+
+```
+
+
+
+```{r hist3}
+ ggplot(airbnb.df, aes(x=price) ) + geom_histogram(bins = 30, aes(y = ..density..), fill = "blue") +   geom_density(alpha = 0.2, fill = "blue") + scale_x_log10() + labs(title = 'Histogram of Price(log) by Neighborhood type ', x = 'Price', y = 'Count')+ facet_wrap(~neighbourhood_group) 
+
+```
+
+### Correlation  
+
+I want to check the correlation between Price and Number of reviews, Minimum nights and Availability_365 variables  
+
+
+```{r corr1}
+# Reading numberic variables and checking for correlation
+df  <- airbnb.df  %>% select("price","number_of_reviews","minimum_nights", "availability_365")
+cor(df)
+```
+
+These variables are not highly linearly correlated(values < 0.1) to Price variable.  
+
+```{r price_range}
+#Quantiles of price
+summary(airbnb.df$price)
+
+```
+
+Median Airbnb rental price is \$106 in NYC and Max price being \$10k.  
+
+
+----------  
+
+## Question B  
+
+*What are different ways you could look at this data to answer the questions you want to answer?*  
+
+We can look at this data using different visual plots to understand it first. For e.g. Price by Room type using boxplot.  
+Or Price by Neighbourhood Group using boxplot, Price distribution.  
+How number of reviews is related to Price.  
+How room availability is related to Price.  
+
+
+
+
+```{r room_price}
+
+#Room type vs Price plot
+ggplot(airbnb.df, aes(x = room_type, y = price)) +
+  geom_boxplot(aes(fill = room_type)) + scale_y_log10() +
+  labs(title = 'Price by Room type', x = 'Room type', y = 'Price') + geom_hline(yintercept = mean(airbnb.df$price), color = "purple", linetype = 2)
+
+```
+
+From the above plot, we can see Home/Apt's mean price is higher than other room types.  
+So, room type is definitely related to Price variable.  
+
+
+```{r neighbor_price}
+# Neighborhood group vs Price plot
+ggplot(airbnb.df, aes(x = neighbourhood_group, y = price)) +
+  geom_boxplot(aes(fill = neighbourhood_group)) + scale_y_log10() +
+  labs(title = 'Price by Neighborhood Group', x = 'Neighborhood Group', y = 'Price') + geom_hline(yintercept = mean(airbnb.df$price), color = "purple", linetype = 2)
+
+```
+
+From the above plot, we can see Airbnb hotels are expensive in Manhattan and Bronx being the cheapest!  
+So, Neighborhood Group has relationship with Price.  
+
+
+
+-------  
+
+## Question C   
+
+*Do you plan to slice and dice the data in different ways, create new variables, or join separate data frames to create new summary information? Explain.*  
+
+Yes, like I said in the previous question - I would like to see Price using different dimensions like Room type, Neighbourhood, Number of reviews and Availability.  
+New variables and joining dataframes maynot be needed for my analysis.  
+
+```{r geography}
+#Neighbourhood group with latitude and logitude
+ggplot(data = airbnb.df, aes(latitude, longitude, color = neighbourhood_group)) + geom_point() + labs(title = "Neighbourhood Groups", x = "Latitude", y = "Longitude")
+```
+
+The above map shows the neighbourhood group map and appropriately colors it.  
+
+
+```{r scatter_plot1}
+#Availability vs Price plot
+ggplot(airbnb.df, aes(availability_365, price)) + geom_jitter() + labs(title = 'Availability vs Price plot', x = 'Availability 365', y = 'Price')
+
+```
+
+There is no particular linear correlation between Price vs Availability variable alone.  
+
+
+
+```{r scatterplot2}
+#Number of reviews vs Price plot
+ggplot(airbnb.df, aes(number_of_reviews, price)) + geom_jitter() + labs(title = 'Number of reviews vs Price plot', x = 'Number of reviews', y = 'Price')
+
+```
+
+
+
+-------  
+
+
+```{r top_10_prices}
+##Price values are most occuring in the dataset
+top_10 <- airbnb.df  %>%  select(price)  %>% group_by(price)  %>% summarise(count = n())  %>%
+arrange(desc(count)) %>% top_n(10)
+top_10
+
+```
+
+From the above aggregate counts, the most used Price value in the dataset is 100. So, no wonder the median is 106.  
+
+
+
+----------  
+
+
+## Linear regression
+
+```{r linear1}
+# linear regression model for Price
+price_model1 = lm(price ~ latitude + longitude + room_type + minimum_nights  + availability_365 + neighbourhood_group, data = airbnb.df) 
+summary(price_model1) #Review the results
+
+```
+
+Linear regression for target variable Price with independent variables latitude, longitude, room_type, minimum_nights , availability_365 and neighbourhood_group.  
+
+Interpretion:  
+  1. Except minimum_nights, all other variables are statistically significant. Because p-value is less than 1%.  
+  2. R-square is small (9.4%), that means the model doesn't explain the variation to a great extent.
+  3. Max Residuals tells us there are outliers in the dataset.  
+
+The model can be viewed visually below.    
+
+```{r lm_plot1}
+plot(price_model1)
+```
+
+Normal Q-Q plot tells us that the model is not a great fit.  
+Outliers causing leverage to be high on certain points.  
+
+So, I want to test the regression with log transformation on the price, since log gave us better correlation earlier.  
+
+```{r linear2}
+airbnb.df$log_price <- log(airbnb.df$price + min(airbnb.df$price) + 1)
+#training.df$log_price <- log(training.df$price + min(training.df$price) + 1)
+#testing.df$log_price <- log(testing.df$price + min(testing.df$price) + 1)
+
+
+#all(is.na(log(airbnb.df$price)))
+# linear regression model for Price
+price_model2 = lm(log_price ~ latitude + longitude + room_type + minimum_nights  + availability_365 + neighbourhood_group, data = airbnb.df, na.action=na.exclude) 
+summary(price_model2) #Review the results
+
+```
+
+```{r lm_plot2}
+plot(price_model2)
+```
+
+Normal Q-Q plot tells us this model is a better fit than previous model.  
+And there is a great improvement in R-squared value (48% from 8% in the previous model).  
+So, I conclude log(price) model is a great fit to the dataset. All variables in the model are statistically significant. Leverage plot tells us there are outliers in the dataset.  
+
+
+
+### End of assignment  
+
+---------
