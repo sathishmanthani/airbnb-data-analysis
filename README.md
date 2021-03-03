@@ -1,5 +1,7 @@
 # Price Analysis - NYC Airbnb data
 
+<img src="images/airbnb.jpg?raw=true"/> <br>
+
 *Author* - Sathish Manthani
 
 *Statistics project* - NYC Airbnb Price Analysis using R
@@ -38,6 +40,9 @@ Another interesting insight is, Minimum number of nights stay is not impacting t
 
 Though I concluded the final model with Log transformation on target variable, the final model didn’t explain the variance in the dataset completely. It could only explain the variance around 50%, so the predicted price values would be off by a certain amount. Our dataset also has outliers, what if the outliers are genuine values and the model couldn’t fit them completely. 
 
+### [Github Code](https://github.com/sathishmanthani/airbnb-data-analysis/)
+
 ## References
 
 [Kaggle - New York City Airbnb Open Data](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data)
+
