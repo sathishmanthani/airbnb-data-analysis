@@ -22,7 +22,7 @@ The questions I would like to ask on the dataset are:
 3.	What is the relationship between location and price
 4.	Are reviews influencing the price
 
-## Solution Approach
+## Solution Approach 
 
 I initially did the data cleansing steps like data type conversions, drop unwanted variables, duplicate data check and missing values check.
 Later, I explored the categorical variables like room type, neighborhood and explored distribution of the variables using histograms.
